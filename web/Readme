@@ -1,0 +1,196 @@
+# RoseAmor · App Web – Registro de Pedidos
+
+> Aplicación web construida con **Next.js 14**, **Tailwind CSS** y **SQLite** (better-sqlite3).  
+> Pantalla para registrar pedidos con validaciones front + back, y tabla de últimos registros.
+
+---
+
+## Stack
+
+| Tecnología | Versión | Rol |
+|---|---|---|
+| Next.js | 14 (App Router) | Framework web |
+| TypeScript | 5 | Tipado estático |
+| Tailwind CSS | 3 | Estilos |
+| better-sqlite3 | 11 | ORM/conector SQLite |
+| SQLite | — | Base de datos local |
+
+---
+
+## Estructura
+
+```
+web/
+├── app/
+│   ├── api/orders/route.ts   ← API REST: POST /api/orders · GET /api/orders
+│   ├── globals.css           ← Fuentes, variables CSS, utilidades
+│   ├── layout.tsx            ← Root layout
+│   └── page.tsx              ← Página principal
+├── components/
+│   └── OrderForm.tsx         ← Formulario + tabla de últimos pedidos
+├── lib/
+│   ├── db.ts                 ← Conexión SQLite, creación de tabla
+│   └── validations.ts        ← Reglas de validación compartidas (front/back)
+├── next.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
+```
+
+---
+
+## Cómo correr la app localmente
+
+### Requisitos previos
+
+- Node.js **18+** (recomendado: 20 LTS)
+- npm 9+ (incluido con Node.js)
+- En Windows: instalar también las **Build Tools de Visual Studio** para compilar módulos nativos
+  ```
+  npm install --global windows-build-tools
+  ```
+  O instalar desde: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+### Pasos
+
+```bash
+# 1. Entrar a la carpeta del proyecto web
+cd web
+
+# 2. Instalar dependencias (incluye better-sqlite3, que compila nativas)
+npm install
+
+# 3. Crear la carpeta de la base de datos si no existe
+mkdir -p ../database
+
+# 4. Levantar en modo desarrollo
+npm run dev
+```
+
+Abrir en el navegador: **http://localhost:3000**
+
+---
+
+## Dónde queda la data
+
+Por defecto la base de datos SQLite se crea en:
+
+```
+<raíz del repositorio>/database/roseamor.db
+```
+
+Es decir, **una carpeta arriba** del directorio `web/`. Esto permite compartir la misma DB con el ETL.
+
+### Cambiar la ruta (opcional)
+
+Crear un archivo `.env.local` dentro de `web/`:
+
+```env
+SQLITE_DB_PATH=/ruta/absoluta/a/tu/roseamor.db
+```
+
+---
+
+## Tabla en SQLite
+
+La tabla se crea **automáticamente** si no existe al hacer la primera request.
+
+```sql
+CREATE TABLE IF NOT EXISTS fact_sales (
+  order_id    TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  sku         TEXT NOT NULL,
+  quantity    INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price  REAL    NOT NULL CHECK (unit_price > 0),
+  order_date  TEXT    NOT NULL,
+  channel     TEXT    NOT NULL
+    CHECK (channel IN ('ecommerce','retail','wholesale','export')),
+  created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+```
+
+---
+
+## Cómo verificar que el pedido se guardó
+
+### Opción 1 – DB Browser for SQLite (GUI)
+
+1. Descargar: https://sqlitebrowser.org/dl/
+2. Abrir archivo: `database/roseamor.db`
+3. Ir a **Browse Data** → tabla `fact_sales`
+
+### Opción 2 – SQLite CLI
+
+```bash
+# En Linux/macOS
+sqlite3 ../database/roseamor.db "SELECT * FROM fact_sales ORDER BY created_at DESC LIMIT 5;"
+
+# En Windows (con sqlite3.exe en PATH)
+sqlite3 ..\database\roseamor.db "SELECT * FROM fact_sales ORDER BY created_at DESC LIMIT 5;"
+```
+
+### Opción 3 – API directa
+
+```bash
+curl http://localhost:3000/api/orders?limit=5
+```
+
+---
+
+## API Endpoints
+
+### `POST /api/orders`
+
+Registrar un nuevo pedido.
+
+```json
+// Request body
+{
+  "order_id":    "O099999",
+  "customer_id": "C0001",
+  "sku":         "SKU0001",
+  "quantity":    5,
+  "unit_price":  29.99,
+  "order_date":  "2026-03-16",
+  "channel":     "retail"
+}
+
+// 201 Created
+{ "success": true, "order": { ... } }
+
+// 422 Unprocessable Entity
+{ "error": "Errores de validación.", "fields": { "quantity": "Debe ser un entero mayor a 0." } }
+
+// 409 Conflict
+{ "error": "Ya existe un pedido con order_id \"O099999\"." }
+```
+
+### `GET /api/orders?limit=20&offset=0`
+
+Retorna los últimos pedidos ordenados por fecha de creación.
+
+---
+
+## Validaciones implementadas
+
+| Campo | Reglas |
+|---|---|
+| `order_id` | Obligatorio · Solo letras, números, `-`, `_` |
+| `customer_id` | Obligatorio · Solo letras, números, `-`, `_` |
+| `sku` | Obligatorio |
+| `quantity` | Obligatorio · Entero · Mayor a 0 |
+| `unit_price` | Obligatorio · Número · Mayor a 0 |
+| `order_date` | Obligatorio · Formato `YYYY-MM-DD` · Fecha válida |
+| `channel` | Obligatorio · Uno de: `ecommerce`, `retail`, `wholesale`, `export` |
+
+Todas las validaciones se aplican **en el cliente** (feedback inmediato) y **en el servidor** (seguridad).
+
+---
+
+## Build para producción
+
+```bash
+npm run build
+npm start
+```

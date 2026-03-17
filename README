@@ -1,0 +1,181 @@
+
+```markdown
+# 🌹 RoseAmor Data Engineering Challenge
+
+## 🚀 Demo visual
+
+### 📊 Dashboard Power BI
+![Dashboard](assets/dashboard.png)
+
+### 🌐 Web App
+![Web App](assets/web-app.png)
+![Web App](assets/web1-app.png)
+
+## 📌 Descripción
+
+Solución completa para transformar datos crudos en información confiable para análisis y gestión de pedidos.
+
+Incluye:
+- ETL de datos (Python)
+- Base de datos SQLite
+- Dashboard en Power BI
+- Aplicación web para registro de pedidos (Next.js)
+
+---
+
+## 🏗️ Arquitectura
+
+```
+
+CSV (data/)
+↓
+ETL (scripts/etl.py)
+↓
+SQLite (database/roseamor.db)
+↓
+Exports CSV (exports/)
+↓
+Power BI Dashboard
+↓
+Web App (Next.js)
+
+````
+
+---
+
+## 🧹 Limpieza de datos
+
+Problemas detectados:
+
+- Costos negativos en productos → convertidos a valor absoluto
+- Registros duplicados → eliminados
+- Valores nulos → eliminados
+- Fechas inválidas → filtradas
+- Relaciones inválidas (customer_id / sku) → excluidas
+
+---
+
+## 🗃️ Modelo de datos
+
+Tablas:
+
+- `dim_customers`
+- `dim_products`
+- `fact_sales`
+
+Relaciones:
+
+- `fact_sales.customer_id → dim_customers.customer_id`
+- `fact_sales.sku → dim_products.sku`
+
+---
+
+## ⚙️ Cómo ejecutar
+
+### 1. Instalar dependencias
+
+```bash
+pip install pandas
+````
+
+### 2. Ejecutar ETL
+
+```bash
+python scripts/etl.py
+```
+
+Esto:
+
+* crea la base SQLite
+* limpia los datos
+* genera exports en `/exports`
+
+---
+
+## 📊 Dashboard (Power BI)
+
+Archivo:
+
+```
+RoseAmor_Dashboard.pbix
+```
+
+Incluye:
+
+* Ventas totales
+* Margen total
+* Número de pedidos
+* Ticket promedio
+* Ventas por mes
+* Ventas por canal
+* Margen por categoría
+* Top clientes
+* Top productos
+
+Filtros:
+
+* Fecha
+* Canal
+* Categoría
+* País
+
+---
+
+## 🌐 Web App
+
+Ubicación:
+
+```
+web/
+```
+
+### Ejecutar:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Abrir:
+
+```
+http://localhost:3000
+```
+
+---
+
+## 🧾 Registro de pedidos
+
+La app permite:
+
+* registrar nuevos pedidos
+* validación de datos
+* almacenamiento en SQLite (`fact_sales`)
+
+---
+
+## 🔄 Actualización de datos
+
+Si llegan nuevos CSV:
+
+1. reemplazar archivos en `/data`
+2. ejecutar:
+
+```bash
+python scripts/etl.py
+```
+
+3. actualizar Power BI
+
+---
+
+## ✅ Validación
+
+Se verificó que:
+
+* los datos se cargan correctamente
+* los KPIs coinciden con SQL
+* los pedidos registrados desde la app se guardan en la base SQLite
+
+````
